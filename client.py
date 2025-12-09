@@ -33,6 +33,14 @@ def run():
                 break
     except grpc.RpcError as e:
         print("StreamRates error:", e)
+        # 4. Prueba del Desafío GetRate
+        print("\n4. Prueba de GetRate (Solo tasa):")
+        try:
+            rate_req = currency_pb2.RateRequest(from_currency="GBP", to_currency="USD")
+            rate_res = stub.GetRate(rate_req)
+            print(f"   Tasa actual GBP -> USD: {rate_res.rate}")
+        except grpc.RpcError as e:
+            print(f"   Error: {e}")
 
 if __name__ == "__main__":
     run()

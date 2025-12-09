@@ -48,13 +48,13 @@ pip install -r requirements.txt
 pip install grpcio grpcio-tools
 ```
 
-# Iniciar el Servidor
+### Iniciar el Servidor
 En una terminal, ejecuta:
 ```bash
 python server.py
 ```
 
-# Iniciar el Cliente
+### Iniciar el Cliente
 Abre una nueva terminal (manteniendo el servidor abierto) y ejecuta:
 ```bash
 python client.py
@@ -65,7 +65,18 @@ Si realizas cambios en el archivo .proto o si es la primera vez que ejecutas el 
 ```bash
 python -m grpc_tools.protoc -I./proto --python_out=. --grpc_python_out=. currency.proto
 ```
+## Respuestas a Preguntas de Control
+### ¿Qué diferencia hay entre una RPC unary y server-streaming?
 
-# Evidencias de Ejecución
-Las capturas de pantalla que demuestran el funcionamiento correcto del laboratorio se muestran dentro de la carpeta /capturas.
+**Unary RPC:** Es una comunicación simple "uno a uno". El cliente envía una sola solicitud y espera una sola respuesta del servidor (como una función normal). Ejemplo: Convert.
 
+**Server-Streaming RPC:** El cliente envía una solicitud, pero el servidor responde con un flujo (stream) de múltiples mensajes a lo largo del tiempo. La conexión se mantiene abierta hasta que el servidor termina de enviar todos los datos. Ejemplo: GetSupportedCurrencies.
+
+### ¿Cómo manejarías el caso de una tasa no encontrada en el servidor?
+
+Se utiliza el contexto de gRPC para establecer un código de estado de error. No se debe devolver una respuesta vacía o con valor 0, sino un error explícito. En Python se hace así:
+
+```bash
+context.set_code(grpc.StatusCode.NOT_FOUND)
+context.set_details("Moneda o tasa no encontrada")
+```

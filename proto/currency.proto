@@ -23,13 +23,22 @@ message Currency {
 
 message Empty {}
 
+// --- NUEVO: Mensajes para GetRate ---
+message RateRequest {
+  string from_currency = 1; 
+  string to_currency = 2; 
+}
+
+message RateReply { 
+  double rate = 1; 
+}
+
+// --- Servicio ---
 service CurrencyConverter {
-  // Conversión simple (unary)
   rpc Convert(ConvertRequest) returns (ConvertReply);
-
-  // El servidor envía la lista de monedas soportadas (stream)
   rpc GetSupportedCurrencies(Empty) returns (stream Currency);
-
-  // (Opcional) El servidor stream de tasas periódicas (simulado)
   rpc StreamRates(Empty) returns (stream ConvertReply);
+  
+  // --- NUEVO: Método GetRate ---
+  rpc GetRate(RateRequest) returns (RateReply);
 }

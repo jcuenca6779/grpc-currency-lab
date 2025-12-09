@@ -3,18 +3,20 @@ from concurrent import futures
 import grpc
 import currency_pb2
 import currency_pb2_grpc
+import requests
 
 # Tasas simuladas: map[from][to] = rate (1 unit of from = rate units of to)
 SIMULATED_RATES = {
-    "USD": {"EUR": 0.92, "GBP": 0.78, "USD": 1.0},
-    "EUR": {"USD": 1.087, "GBP": 0.85, "EUR": 1.0},
-    "GBP": {"USD": 1.28, "EUR": 1.17, "GBP": 1.0},
+    "USD": {"EUR": 0.92, "GBP": 0.78, "USD": 1.0, "JPY": 150.0},
+    "EUR": {"USD": 1.087, "GBP": 0.85, "EUR": 1.0, "JPY": 163.0},
+    "GBP": {"USD": 1.28, "EUR": 1.17, "GBP": 1.0, "JPY": 190.0},
 }
 
 SUPPORTED = [
     ("USD", "United States Dollar"),
     ("EUR", "Euro"),
     ("GBP", "British Pound"),
+    ("JPY", "Japanese Yen"),
 ]
 
 class CurrencyConverterServicer(currency_pb2_grpc.CurrencyConverterServicer):
@@ -22,21 +24,41 @@ class CurrencyConverterServicer(currency_pb2_grpc.CurrencyConverterServicer):
         from_c = request.from_currency.upper()
         to_c = request.to_currency.upper()
         amt = request.amount
-        # rate lookup with simple fallback
-        rate = None
-        if from_c in SIMULATED_RATES and to_c in SIMULATED_RATES[from_c]:
-            rate = SIMULATED_RATES[from_c][to_c]
-        elif to_c in SIMULATED_RATES and from_c in SIMULATED_RATES[to_c]:
-            # invert if stored the other way (not necessary here but safe)
-            rate = 1.0 / SIMULATED_RATES[to_c][from_c]
-        else:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details(f"Rate not found for {from_c} -> {to_c}")
-            return currency_pb2.ConvertReply()
 
-        converted = amt * rate
+        print(f"[Solicitud] Convertir {amt} {from_c} a {to_c}")
+        
+        rate = 0.0
+        usando_api = False
+
+        # 1. INTENTO CON API REAL (Frankfurter)
+        try:
+            # La API requiere que from y to sean distintos
+            if from_c != to_c:
+                url = f"https://api.frankfurter.app/latest?amount=1&from={from_c}&to={to_c}"
+                response = requests.get(url, timeout=2) # Timeout corto para no bloquear
+                if response.status_code == 200:
+                    data = response.json()
+                    rate = data['rates'][to_c]
+                    usando_api = True
+                    print(f"   (Usando API Real: Tasa {rate})")
+            else:
+                rate = 1.0
+        except Exception as e:
+            print(f"   (Fallo API, usando datos locales: {e})")
+
+        # 2. FALLBACK: Si la API falló, usar diccionario local
+        if not usando_api and rate == 0.0:
+            if from_c in SIMULATED_RATES and to_c in SIMULATED_RATES[from_c]:
+                rate = SIMULATED_RATES[from_c][to_c]
+            elif to_c in SIMULATED_RATES and from_c in SIMULATED_RATES[to_c]:
+                rate = 1.0 / SIMULATED_RATES[to_c][from_c]
+            else:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Tasa no encontrada para {from_c} -> {to_c}")
+                return currency_pb2.ConvertReply()
+
         return currency_pb2.ConvertReply(
-            converted_amount=converted,
+            converted_amount=amt * rate,
             rate=rate,
             from_currency=from_c,
             to_currency=to_c
@@ -62,6 +84,25 @@ class CurrencyConverterServicer(currency_pb2_grpc.CurrencyConverterServicer):
                     yield reply
                     time.sleep(0.5)  # espera simulada
             # repetir (podrías agregar lógica para salir si context.is_active() == False)
+            # IMPLEMENTACIÓN DEL DESAFÍO: GetRate
+    def GetRate(self, request, context):
+        from_c = request.from_currency.upper()
+        to_c = request.to_currency.upper()
+        
+        print(f"[GetRate] Solicitando tasa de {from_c} a {to_c}")
+
+        # Reutilizamos la lógica de búsqueda del diccionario
+        rate = 0.0
+        if from_c in SIMULATED_RATES and to_c in SIMULATED_RATES[from_c]:
+            rate = SIMULATED_RATES[from_c][to_c]
+        elif to_c in SIMULATED_RATES and from_c in SIMULATED_RATES[to_c]:
+            rate = 1.0 / SIMULATED_RATES[to_c][from_c]
+        else:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details(f"Tasa no encontrada para {from_c} -> {to_c}")
+            return currency_pb2.RateReply()
+
+        return currency_pb2.RateReply(rate=rate)
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

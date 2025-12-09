@@ -26,7 +26,8 @@ if _version_not_supported:
 
 
 class CurrencyConverterStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """--- Servicio ---
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -49,27 +50,37 @@ class CurrencyConverterStub(object):
                 request_serializer=currency__pb2.Empty.SerializeToString,
                 response_deserializer=currency__pb2.ConvertReply.FromString,
                 _registered_method=True)
+        self.GetRate = channel.unary_unary(
+                '/currency.CurrencyConverter/GetRate',
+                request_serializer=currency__pb2.RateRequest.SerializeToString,
+                response_deserializer=currency__pb2.RateReply.FromString,
+                _registered_method=True)
 
 
 class CurrencyConverterServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """--- Servicio ---
+    """
 
     def Convert(self, request, context):
-        """Conversión simple (unary)
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetSupportedCurrencies(self, request, context):
-        """El servidor envía la lista de monedas soportadas (stream)
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def StreamRates(self, request, context):
-        """(Opcional) El servidor stream de tasas periódicas (simulado)
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetRate(self, request, context):
+        """--- NUEVO: Método GetRate ---
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -93,6 +104,11 @@ def add_CurrencyConverterServicer_to_server(servicer, server):
                     request_deserializer=currency__pb2.Empty.FromString,
                     response_serializer=currency__pb2.ConvertReply.SerializeToString,
             ),
+            'GetRate': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRate,
+                    request_deserializer=currency__pb2.RateRequest.FromString,
+                    response_serializer=currency__pb2.RateReply.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'currency.CurrencyConverter', rpc_method_handlers)
@@ -102,7 +118,8 @@ def add_CurrencyConverterServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class CurrencyConverter(object):
-    """Missing associated documentation comment in .proto file."""
+    """--- Servicio ---
+    """
 
     @staticmethod
     def Convert(request,
@@ -175,6 +192,33 @@ class CurrencyConverter(object):
             '/currency.CurrencyConverter/StreamRates',
             currency__pb2.Empty.SerializeToString,
             currency__pb2.ConvertReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetRate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/currency.CurrencyConverter/GetRate',
+            currency__pb2.RateRequest.SerializeToString,
+            currency__pb2.RateReply.FromString,
             options,
             channel_credentials,
             insecure,
